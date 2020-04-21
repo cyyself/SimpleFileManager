@@ -41,6 +41,7 @@ public class toolBarMenu extends JPopupMenu {
                         if (!delete(new File(newPath))) {
                             JOptionPane.showMessageDialog(null, "删除失败");
                         }
+                        else MainFrame.ChangeDirection(MainFrame.cur_Folder);
                     }
                 }
             }
