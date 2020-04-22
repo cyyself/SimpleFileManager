@@ -41,6 +41,7 @@ class MainFrame extends JFrame{
         return false;
     }
     public MainFrame() {
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
         add(topBar, BorderLayout.NORTH);
         add(dirView, BorderLayout.CENTER);
