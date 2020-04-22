@@ -1,19 +1,30 @@
 package com.cyyself.FileManager;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipException;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 public class toolBarMenu extends JPopupMenu {
+    public JMenuItem open = new JMenuItem("打开");
     public JMenuItem mkdir = new JMenuItem("新建文件夹");
     public JMenuItem cut = new JMenuItem("剪切");
     public JMenuItem copy = new JMenuItem("复制");
@@ -21,9 +32,12 @@ public class toolBarMenu extends JPopupMenu {
     public JMenuItem delete = new JMenuItem("删除");
     public JMenuItem encrypt = new JMenuItem("加密");
     public JMenuItem decrypt = new JMenuItem("解密");
+    public JMenuItem zip = new JMenuItem("压缩");
+    public JMenuItem unzip = new JMenuItem("解压");
     static String copyFrom = "";
     static boolean isCut = false;
     toolBarMenu() {
+        add(open);
         add(mkdir);
         add(cut);
         add(copy);
@@ -31,6 +45,25 @@ public class toolBarMenu extends JPopupMenu {
         add(delete);
         add(encrypt);
         add(decrypt);
+        add(zip);
+        add(unzip);
+        open.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                File sel = new File(MainFrame.dirView.getSelectedPath());
+                if (sel.isFile()) {
+                    try {
+                        Desktop.getDesktop().open(sel);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        System.out.println("打开失败");
+                    }
+                }
+                else if (sel.isDirectory()) {
+                    MainFrame.reDirectTo(MainFrame.dirView.getSelectedPath());
+                }
+            }
+        });
         mkdir.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
@@ -102,12 +135,9 @@ public class toolBarMenu extends JPopupMenu {
         delete.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                String Path = MainFrame.dirView.getSelectedPath();
-                if (!Path.isEmpty()) {
-                    File toDelete = new File(Path);
-                    if (!FileUtils.deleteQuietly(toDelete)) {
-                        JOptionPane.showMessageDialog(null, "删除失败");
-                    }
+                File toDelete = new File(MainFrame.dirView.getSelectedPath());
+                if (!FileUtils.deleteQuietly(toDelete)) {
+                    JOptionPane.showMessageDialog(null, "删除失败");
                 }
                 MainFrame.ChangeDirection(MainFrame.cur_Folder);
             }
@@ -173,6 +203,79 @@ public class toolBarMenu extends JPopupMenu {
                 } catch (IOException | NoSuchAlgorithmException e) {
                     e.printStackTrace();
                     JOptionPane.showMessageDialog(null, "解密失败");
+                }
+                MainFrame.ChangeDirection(MainFrame.cur_Folder);
+            }
+        });
+        zip.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                File to_zip = new File(MainFrame.dirView.getSelectedPath());
+                if (to_zip.isFile()){
+                    try {
+                        FileOutputStream fos = new FileOutputStream(to_zip.getAbsoluteFile()+".zip");
+                        ZipOutputStream zos = new ZipOutputStream(fos);
+                        zos.putNextEntry(new ZipEntry(to_zip.getName()));
+                        byte[] bytes = Files.readAllBytes(to_zip.toPath());
+                        zos.write(bytes, 0, bytes.length);
+                        zos.closeEntry();
+                        zos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "压缩失败");
+                    }
+                }
+                else if (to_zip.isDirectory()) {
+                    try {
+                        FileOutputStream fos = new FileOutputStream(to_zip.getAbsoluteFile()+".zip");
+                        ZipOutputStream zos = new ZipOutputStream(fos);
+                        Files.walkFileTree(to_zip.toPath(), new SimpleFileVisitor<Path>() {
+                            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                                zos.putNextEntry(new ZipEntry(to_zip.getName()+ File.separator + to_zip.toPath().relativize(file).toString()));
+                                Files.copy(file, zos);
+                                zos.closeEntry();
+                                return FileVisitResult.CONTINUE;
+                            }
+                            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                                zos.putNextEntry(new ZipEntry(to_zip.getName()+ File.separator + to_zip.toPath().relativize(dir).toString() + File.separator));
+                                zos.closeEntry();
+                                return FileVisitResult.CONTINUE;
+                            }
+                        });
+                        zos.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "压缩失败");
+                    }
+                }
+                else JOptionPane.showMessageDialog(null, "压缩失败");
+                MainFrame.ChangeDirection(MainFrame.cur_Folder);
+            }
+        });
+        unzip.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                try (ZipFile zipFile = new ZipFile(new File(MainFrame.dirView.getSelectedPath()))) {
+                    Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                    while (entries.hasMoreElements()) {
+                        ZipEntry entry = entries.nextElement();
+                        File entryDestination = new File(MainFrame.cur_Folder, entry.getName());
+                        if (entry.isDirectory()) {
+                            entryDestination.mkdirs();
+                        } else {
+                            entryDestination.getParentFile().mkdirs();
+                            try (InputStream in = zipFile.getInputStream(entry);
+                                 OutputStream out = new FileOutputStream(entryDestination)) {
+                                IOUtils.copy(in, out);
+                            }
+                        }
+                    }
+                } catch (ZipException e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "解压失败");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    JOptionPane.showMessageDialog(null, "解压失败");
                 }
                 MainFrame.ChangeDirection(MainFrame.cur_Folder);
             }
