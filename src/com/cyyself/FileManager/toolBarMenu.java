@@ -1,11 +1,12 @@
 package com.cyyself.FileManager;
 
+import org.apache.commons.io.FileUtils;
+
 import javax.swing.*;
-import javax.swing.tree.TreePath;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.IOException;
 
 public class toolBarMenu extends JPopupMenu {
     public JMenuItem mkdir = new JMenuItem("新建文件夹");
@@ -13,6 +14,8 @@ public class toolBarMenu extends JPopupMenu {
     public JMenuItem copy = new JMenuItem("复制");
     public JMenuItem paste = new JMenuItem("粘贴");
     public JMenuItem delete = new JMenuItem("删除");
+    static String copyFrom = "";
+    static boolean isCut = false;
     toolBarMenu() {
         add(mkdir);
         add(cut);
@@ -30,34 +33,76 @@ public class toolBarMenu extends JPopupMenu {
                 }
             }
         });
-        delete.addActionListener(new ActionListener() {
+        cut.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                TreePath tp = MainFrame.dirView.tree.getSelectionPath();
-                if (tp != null) {
-                    String filename = tp.getLastPathComponent().toString();
-                    if (filename != null && !filename.isEmpty()) {
-                        String newPath = MainFrame.cur_Folder.getAbsolutePath() + File.separator + filename;
-                        if (!delete(new File(newPath))) {
-                            JOptionPane.showMessageDialog(null, "删除失败");
-                        }
-                        else MainFrame.ChangeDirection(MainFrame.cur_Folder);
-                    }
+                String Path = MainFrame.dirView.getSelectedPath();
+                if (!Path.isEmpty()) {
+                    isCut = true;
+                    copyFrom = Path;
                 }
             }
         });
-    }
-    static boolean delete(File file) {
-        if (!file.delete()) {
-            //避免了unix中软链接被直接删除，与rm -rf的操作相符合
-            if (file.isDirectory()) {
-                for (File x:file.listFiles()) {
-                    delete(x);
+        copy.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                String Path = MainFrame.dirView.getSelectedPath();
+                if (!Path.isEmpty()) {
+                    isCut = false;
+                    copyFrom = Path;
                 }
-                return file.delete();
             }
-            else return false;
-        }
-        else return true;
+        });
+        paste.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                File src = new File(copyFrom);
+                File dst = new File(MainFrame.dirView.getSelectedPath());
+                if (!dst.isDirectory()) dst = MainFrame.cur_Folder;
+                if (!dst.isDirectory()){
+                    JOptionPane.showMessageDialog(null, "目标不存在");
+                    return;
+                }
+                if (src.isFile()) {
+                    try {
+                        FileUtils.copyFileToDirectory(src,dst);
+                        if (isCut) if (!FileUtils.deleteQuietly(src)) {
+                            JOptionPane.showMessageDialog(null, "删除失败");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "复制失败");
+                    }
+                }
+                else if (src.isDirectory()) {
+                    dst = new File(dst.getAbsolutePath() + File.separator + src.getName());
+                    try {
+                        FileUtils.copyDirectory(src,dst);
+                        if (isCut) if (!FileUtils.deleteQuietly(src)) {
+                            JOptionPane.showMessageDialog(null, "删除失败");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(null, "复制失败");
+                    }
+                }
+                else JOptionPane.showMessageDialog(null, "源文件不存在");
+                MainFrame.ChangeDirection(MainFrame.cur_Folder);
+            }
+        });
+        delete.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                String Path = MainFrame.dirView.getSelectedPath();
+                if (!Path.isEmpty()) {
+                    File toDelete = new File(Path);
+                    if (!FileUtils.deleteQuietly(toDelete)) {
+                        JOptionPane.showMessageDialog(null, "删除失败");
+                    }
+                }
+                MainFrame.ChangeDirection(MainFrame.cur_Folder);
+            }
+        });
     }
+
 }

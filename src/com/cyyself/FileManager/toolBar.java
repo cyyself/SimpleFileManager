@@ -24,16 +24,17 @@ class toolBar extends JPanel {
                 MainFrame.ChangeDirection(new File(path_text.getText()));
             }
         });
+        back_button.setEnabled(false);
+        forward_button.setEnabled(false);
         ancestor_button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                System.out.println("action!");
                 String[] path = MainFrame.cur_Folder.getAbsolutePath().toString().split(File.separator);
-                String newPath = new String();
+                StringBuilder newPath = new StringBuilder();
                 for (int i=0;i<path.length-1;i++) {
-                    newPath += path[i] + File.separator;
+                    newPath.append(path[i]).append(File.separator);
                 }
-                MainFrame.ChangeDirection(new File(newPath));
+                MainFrame.reDirectTo(newPath.toString());
             }
         });
         cd_button.addActionListener(new ActionListener() {
@@ -43,6 +44,26 @@ class toolBar extends JPanel {
                 chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 if (chooser.showOpenDialog(rootFrame) == JFileChooser.APPROVE_OPTION) {
                     MainFrame.ChangeDirection(chooser.getSelectedFile());
+                }
+            }
+        });
+        back_button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                File newFile = new File(MainFrame.history.get(MainFrame.history_idx - 1));
+                if (newFile.isDirectory()) {
+                    MainFrame.history_idx --;
+                    MainFrame.ChangeDirection(newFile);
+                }
+            }
+        });
+        forward_button.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+                File newFile = new File(MainFrame.history.get(MainFrame.history_idx + 1));
+                if (newFile.isDirectory()) {
+                    MainFrame.history_idx ++;
+                    MainFrame.ChangeDirection(newFile);
                 }
             }
         });

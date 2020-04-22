@@ -25,9 +25,8 @@ class FileListPane extends JScrollPane {
             public void treeExpanded(TreeExpansionEvent treeExpansionEvent) {
                 String DirName = tree.getSelectionPath().getLastPathComponent().toString();
                 String newPath = MainFrame.cur_Folder.getAbsolutePath() + File.separator + DirName;
-                MainFrame.ChangeDirection(new File(newPath));
+                MainFrame.reDirectTo(newPath);
             }
-
             @Override
             public void treeCollapsed(TreeExpansionEvent treeExpansionEvent) {
 
@@ -37,6 +36,11 @@ class FileListPane extends JScrollPane {
             @Override
             public void mouseClicked(MouseEvent mouseEvent) {
                 if (SwingUtilities.isRightMouseButton(mouseEvent)) {
+                    boolean selected = MainFrame.dirView.tree.getSelectionPath() != null;
+                    menu.cut.setEnabled(selected);
+                    menu.copy.setEnabled(selected);
+                    menu.delete.setEnabled(selected);
+                    menu.paste.setEnabled(!menu.copyFrom.isEmpty());
                     menu.show(tree,mouseEvent.getX(),mouseEvent.getY());
                 }
             }
@@ -62,5 +66,15 @@ class FileListPane extends JScrollPane {
             }
         });
         setViewportView(tree);
+    }
+    String getSelectedPath() {
+        TreePath tp = MainFrame.dirView.tree.getSelectionPath();
+        if (tp == null) return "";
+        String filename = tp.getLastPathComponent().toString();
+        if (filename != null && !filename.isEmpty()) {
+            String newPath = MainFrame.cur_Folder.getAbsolutePath() + File.separator + filename;
+            return newPath;
+        }
+        return "";
     }
 }
