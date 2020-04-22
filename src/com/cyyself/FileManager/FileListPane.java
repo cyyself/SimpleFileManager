@@ -41,6 +41,17 @@ class FileListPane extends JScrollPane {
                     menu.copy.setEnabled(selected);
                     menu.delete.setEnabled(selected);
                     menu.paste.setEnabled(!menu.copyFrom.isEmpty());
+                    menu.encrypt.setEnabled(false);
+                    menu.decrypt.setEnabled(false);
+                    if (selected) {
+                        File selFile = new File(getSelectedPath());
+                        String filename = selFile.getName();
+                        if (selFile.isFile()) {
+                            System.out.println(filename.substring(filename.lastIndexOf(".")));
+                            if (filename.substring(filename.lastIndexOf(".")).equals(".encrypted")) menu.decrypt.setEnabled(true);
+                            else menu.encrypt.setEnabled(true);
+                        }
+                    }
                     menu.show(tree,mouseEvent.getX(),mouseEvent.getY());
                 }
             }
