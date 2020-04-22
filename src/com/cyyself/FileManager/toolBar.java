@@ -29,7 +29,9 @@ class toolBar extends JPanel {
         ancestor_button.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent actionEvent) {
-                String[] path = MainFrame.cur_Folder.getAbsolutePath().toString().split(File.separator);
+                String separator = File.separator;
+                if (separator.equals("\\")) separator = "\\\\";
+                String[] path = MainFrame.cur_Folder.getAbsolutePath().toString().split(separator);
                 StringBuilder newPath = new StringBuilder();
                 for (int i=0;i<path.length-1;i++) {
                     newPath.append(path[i]).append(File.separator);
