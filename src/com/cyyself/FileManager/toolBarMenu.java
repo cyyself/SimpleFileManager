@@ -129,6 +129,7 @@ public class toolBarMenu extends JPopupMenu {
                     }
                 }
                 else JOptionPane.showMessageDialog(null, "源文件不存在");
+                if (isCut) copyFrom = "";
                 MainFrame.ChangeDirection(MainFrame.cur_Folder);
             }
         });
