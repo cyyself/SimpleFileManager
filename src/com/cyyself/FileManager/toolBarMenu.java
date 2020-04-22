@@ -120,8 +120,10 @@ public class toolBarMenu extends JPopupMenu {
                     byte[] fileBytes = Files.readAllBytes(toEncrypt.toPath());
                     String passphrase = JOptionPane.showInputDialog("请输入用于加密的密码：");
                     if (passphrase != null) {
-                        byte[] key = passphrase.getBytes(StandardCharsets.UTF_8);
-                        MessageDigest md = MessageDigest.getInstance("MD5");
+                        MessageDigest md = MessageDigest.getInstance("SHA-256");
+                        md.update(passphrase.getBytes(StandardCharsets.UTF_8));
+                        byte[] key = md.digest();
+                        md = MessageDigest.getInstance("MD5");
                         md.update(fileBytes);
                         byte[] hash = md.digest();
                         byte[] toWrite = new byte[hash.length + fileBytes.length];
@@ -148,14 +150,16 @@ public class toolBarMenu extends JPopupMenu {
                     byte[] Encrypted = Files.readAllBytes(toDecrypt.toPath());
                     String passphrase = JOptionPane.showInputDialog("请输入用于解密的密码：");
                     if (passphrase != null) {
-                        byte[] key = passphrase.getBytes(StandardCharsets.UTF_8);
+                        MessageDigest md = MessageDigest.getInstance("SHA-256");
+                        md.update(passphrase.getBytes(StandardCharsets.UTF_8));
+                        byte[] key = md.digest();
                         //解密
                         for (int i=0;i<Encrypted.length;i++) Encrypted[i] ^= key[i % key.length];
                         byte[] fileBytes = new byte[Encrypted.length-16];
                         byte[] md5sum = new byte[16];
                         System.arraycopy(Encrypted,0,md5sum,0,16);
                         System.arraycopy(Encrypted,16,fileBytes,0,fileBytes.length);
-                        MessageDigest md = MessageDigest.getInstance("MD5");
+                        md = MessageDigest.getInstance("MD5");
                         md.update(fileBytes);
                         if (Arrays.equals(md5sum, md.digest())) {
                             String outFilename = toDecrypt.getAbsolutePath();
